@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Global Development Dashboard (1960–2020)</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 20px; }
+    svg { background: #fff; border-radius: 10px; box-shadow: 0 0 6px rgba(0,0,0,0.15); }
+    .tooltip {
+      position: absolute;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 5px;
+      pointer-events: none;
+      font-size: 13px;
+      line-height: 1.4em;
+    }
+    .controls { margin: 15px 0; }
+    .year-label { font-weight: bold; margin-left: 10px; font-size: 16px; }
+    h2 { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+  <h2>🌍 Global Development Dashboard (1960–2020)</h2>
+  <p>Explore how income, education, and health outcomes evolve across countries and over time.</p>
+
+  <div class="controls">
+    <label>Metric:
+      <select id="metric">
+        <option value="gdp">GDP per Capita (Income)</option>
+        <option value="education">Secondary Enrollment (% Gross)</option>
+        <option value="life">Life Expectancy (Years)</option>
+      </select>
+    </label>
+    <label class="year-label" id="year-label">1960</label>
+    <input type="range" id="year" min="1960" max="2020" value="1960" step="1" />
+  </div>
+
+  <svg width="960" height="550"></svg>
+  <div class="tooltip"></div>
+
+  <script>
+    const width = 960, height = 550;
+    const svg = d3.select("svg");
+    const tooltip = d3.select(".tooltip");
+    const projection = d3.geoNaturalEarth1().scale(160).translate([width/2, height/2]);
+    const path = d3.geoPath(projection);
+
+    let year = 1960;
+    let metric = "gdp";
+
+    Promise.all([
+      d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+      d3.csv("economy-and-growth.csv"),
+      d3.csv("education.csv"),
+      d3.csv("social-development.csv")
+    ]).then(([world, econ, edu, social]) => {
+
+      const dataMap = {};
+      const safe = v => +v || null;
+
+      econ.forEach(d => {
+        const key = `${d["Country Name"]}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        dataMap[key].gdp = safe(d["average_value_GDP per capita (current US$)"]);
+      });
+
+      edu.forEach(d => {
+        const key = `${d["Country Name"]}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        dataMap[key].education = safe(d["average_value_School enrollment, secondary (% gross)"]);
+      });
+
+      social.forEach(d => {
+        const key = `${d["Country Name"]}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        const male = safe(d["average_value_Life expectancy at birth, male (years)"]);
+        const female = safe(d["average_value_Life expectancy at birth, female (years)"]);
+        if (male && female) dataMap[key].life = (male + female) / 2;
+      });
+
+      const data = Object.values(dataMap);
+
+      // Draw map base
+      const countries = svg.append("g")
+        .selectAll("path")
+        .data(world.features)
+        .join("path")
+        .attr("d", path)
+        .attr("fill", "#e0e0e0")
+        .attr("stroke", "#999");
+
+      const color = d3.scaleSequential(d3.interpolateYlGnBu);
+
+      function update() {
+        const yearData = data.filter(d => d.Year === year);
+        const byCountry = {};
+        yearData.forEach(d => { byCountry[d.Country] = d[metric]; });
+
+        const values = Object.values(byCountry).filter(v => v != null);
+        color.domain([d3.min(values), d3.max(values)]);
+
+        countries.transition().duration(400)
+          .attr("fill", d => {
+            const name = d.properties.name;
+            const val = byCountry[name];
+            return val ? color(val) : "#ccc";
+          });
+
+        d3.select("#year-label").text(year);
+      }
+      countries.on("mousemove", (event, d) => {
+        const name = d.properties.name;
+        const val = data.find(x => x.Country === name && x.Year === year);
+        tooltip.style("left", (event.pageX + 12) + "px")
+          .style("top", (event.pageY - 28) + "px")
+          .style("opacity", 1)
+          .html(`
+            <strong>${name}</strong><br>
+            GDP per Capita: ${val?.gdp ? "$" + Math.round(val.gdp).toLocaleString() : "N/A"}<br>
+            Secondary Enrollment: ${val?.education ? val.education.toFixed(1) + "%" : "N/A"}<br>
+            Life Expectancy: ${val?.life ? val.life.toFixed(1) + " years" : "N/A"}
+          `);
+      }).on("mouseout", () => tooltip.style("opacity", 0));
+
+      d3.select("#metric").on("change", e => { metric = e.target.value; update(); });
+      d3.select("#year").on("input", e => { year = +e.target.value; update(); });
+
+      update();
+    });
+  </script>
+</body>
+</html>
