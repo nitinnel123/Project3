@@ -5,8 +5,16 @@
   <title>Global Development Dashboard (1960–2020)</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 20px; }
-    svg { background: #fff; border-radius: 10px; box-shadow: 0 0 6px rgba(0,0,0,0.15); }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f9fa;
+      margin: 20px;
+    }
+    svg {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.15);
+    }
     .tooltip {
       position: absolute;
       background: rgba(0,0,0,0.75);
@@ -51,6 +59,33 @@
     let year = 1960;
     let metric = "gdp";
 
+    const nameMap = {
+      "United States": "United States of America",
+      "USA": "United States of America",
+      "United Kingdom": "United Kingdom of Great Britain and Northern Ireland",
+      "Russia": "Russian Federation",
+      "Iran": "Iran (Islamic Republic of)",
+      "Syria": "Syrian Arab Republic",
+      "North Korea": "Democratic People's Republic of Korea",
+      "South Korea": "Republic of Korea",
+      "Czech Republic": "Czechia",
+      "Vietnam": "Viet Nam",
+      "Venezuela": "Venezuela (Bolivarian Republic of)",
+      "Laos": "Lao People's Democratic Republic",
+      "Egypt": "Egypt, Arab Republic of",
+      "Gambia": "Gambia, The",
+      "Congo, Dem. Rep.": "Democratic Republic of the Congo",
+      "Congo, Rep.": "Congo",
+      "Bolivia": "Bolivia (Plurinational State of)",
+      "Tanzania": "United Republic of Tanzania",
+      "Yemen": "Yemen, Rep.",
+      "Kyrgyz Republic": "Kyrgyzstan",
+      "Slovak Republic": "Slovakia",
+      "Cape Verde": "Cabo Verde",
+      "Myanmar (Burma)": "Myanmar",
+      "Eswatini": "Swaziland"
+    };
+
     Promise.all([
       d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
       d3.csv("economy-and-growth.csv"),
@@ -60,22 +95,23 @@
 
       const dataMap = {};
       const safe = v => +v || null;
+      const normalize = name => nameMap[name] || name;
 
       econ.forEach(d => {
-        const key = `${d["Country Name"]}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        const key = `${normalize(d["Country Name"])}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
         dataMap[key].gdp = safe(d["average_value_GDP per capita (current US$)"]);
       });
 
       edu.forEach(d => {
-        const key = `${d["Country Name"]}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        const key = `${normalize(d["Country Name"])}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
         dataMap[key].education = safe(d["average_value_School enrollment, secondary (% gross)"]);
       });
 
       social.forEach(d => {
-        const key = `${d["Country Name"]}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: d["Country Name"], Year: +d.Year };
+        const key = `${normalize(d["Country Name"])}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
         const male = safe(d["average_value_Life expectancy at birth, male (years)"]);
         const female = safe(d["average_value_Life expectancy at birth, female (years)"]);
         if (male && female) dataMap[key].life = (male + female) / 2;
@@ -83,7 +119,6 @@
 
       const data = Object.values(dataMap);
 
-      // Draw map base
       const countries = svg.append("g")
         .selectAll("path")
         .data(world.features)
@@ -111,6 +146,7 @@
 
         d3.select("#year-label").text(year);
       }
+
       countries.on("mousemove", (event, d) => {
         const name = d.properties.name;
         const val = data.find(x => x.Country === name && x.Year === year);
