@@ -59,6 +59,7 @@
     let year = 1960;
     let metric = "gdp";
 
+    // ✅ Country name normalization
     const nameMap = {
       "United States": "United States of America",
       "USA": "United States of America",
@@ -119,6 +120,21 @@
 
       const data = Object.values(dataMap);
 
+      // 🎯 Diagnostic Check — Print missing or unmatched countries
+      const csvCountries = new Set(data.map(d => d.Country));
+      const geoCountries = new Set(world.features.map(f => f.properties.name));
+
+      const unmatchedInGeo = [...csvCountries].filter(c => !geoCountries.has(c));
+      const unmatchedInCSV = [...geoCountries].filter(c => !csvCountries.has(c));
+
+      console.group("🌍 Country Name Diagnostic");
+      console.log("✅ Total countries in GeoJSON:", geoCountries.size);
+      console.log("✅ Total countries in CSV data:", csvCountries.size);
+      console.log("❌ CSV countries not in GeoJSON:", unmatchedInGeo);
+      console.log("❌ GeoJSON countries not in CSV data:", unmatchedInCSV);
+      console.groupEnd();
+
+      // Map Drawing
       const countries = svg.append("g")
         .selectAll("path")
         .data(world.features)
@@ -147,6 +163,7 @@
         d3.select("#year-label").text(year);
       }
 
+      // Tooltip
       countries.on("mousemove", (event, d) => {
         const name = d.properties.name;
         const val = data.find(x => x.Country === name && x.Year === year);
@@ -161,6 +178,7 @@
           `);
       }).on("mouseout", () => tooltip.style("opacity", 0));
 
+      // Controls
       d3.select("#metric").on("change", e => { metric = e.target.value; update(); });
       d3.select("#year").on("input", e => { year = +e.target.value; update(); });
 
