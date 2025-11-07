@@ -99,11 +99,11 @@
       "Egypt, Arab Rep.": "Egypt", "Eswatini": "Swaziland",
       "Gambia, The": "Gambia", "Guinea-Bissau": "Guinea Bissau",
       "Iran, Islamic Rep.": "Iran", "Korea, Dem. People’s Rep.": "North Korea",
-      "Korea, Rep.": "South Korea", "Lao PDR": "Laos",
-      "Macedonia": "North Macedonia", "Russian Federation": "Russia",
-      "Syrian Arab Republic": "Syria", "Venezuela, RB": "Venezuela",
-      "Viet Nam": "Vietnam", "Yemen, Rep.": "Yemen",
-      "Bolivia (Plurinational State of)": "Bolivia",
+      "Korea, Dem. People's Rep.": "North Korea", "Korea, Rep.": "South Korea",
+      "Lao PDR": "Laos", "Macedonia": "North Macedonia",
+      "Russian Federation": "Russia", "Syrian Arab Republic": "Syria",
+      "Venezuela, RB": "Venezuela", "Viet Nam": "Vietnam",
+      "Yemen, Rep.": "Yemen", "Bolivia (Plurinational State of)": "Bolivia",
       "Iran (Islamic Republic of)": "Iran", "Tanzania, United Republic of": "Tanzania",
       "Micronesia, Fed. Sts.": "Micronesia", "St. Kitts and Nevis": "Saint Kitts and Nevis",
       "St. Lucia": "Saint Lucia", "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
@@ -111,7 +111,8 @@
       "Timor-Leste": "East Timor", "São Tomé and Príncipe": "Sao Tome and Principe",
       "Slovak Republic": "Slovakia", "Hong Kong SAR, China": "Hong Kong",
       "Macao SAR, China": "Macao", "Palestine, State of": "Palestine",
-      "Kyrgyz Republic": "Kyrgyzstan"
+      "Kyrgyz Republic": "Kyrgyzstan", "England": "United Kingdom",
+      "Somalia": "Somaliland", "Somaliland": "Somaliland"
     };
 
     const regionNames = [
@@ -126,132 +127,106 @@
       "Fragile and conflict affected situations"
     ];
 
-    const normalize = name => {
-      if (!name || regionNames.includes(name)) return null;
-      return nameMap[name] || name;
-    };
+    const normalize = n => (!n || regionNames.includes(n)) ? null : (nameMap[n] || n);
 
-    function getColorScale(metric) {
-      switch (metric) {
-        case "gdp": return d3.scaleSequential(d3.interpolateYlOrBr);
-        case "education": return d3.scaleSequential(d3.interpolatePuBuGn);
-        case "life": return d3.scaleSequential(d3.interpolateRdYlGn);
-        default: return d3.scaleSequential(d3.interpolateYlGnBu);
-      }
-    }
+    const getColorScale = m =>
+      m==="gdp" ? d3.scaleSequential(d3.interpolateYlOrBr)
+      : m==="education" ? d3.scaleSequential(d3.interpolatePuBuGn)
+      : d3.scaleSequential(d3.interpolateRdYlGn);
 
     Promise.all([
       d3.json("world.geojson"),
       d3.csv("economy-and-growth.csv"),
       d3.csv("education.csv"),
       d3.csv("social-development.csv")
-    ]).then(([world, econ, edu, social]) => {
-
-      const dataMap = {};
+    ]).then(([world,econ,edu,social])=>{
       const safe = v => +v || null;
+      const dataMap = {};
 
-      econ.forEach(d => {
-        const norm = normalize(d["Country Name"]); if (!norm) return;
-        const key = `${norm}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
-        dataMap[key].gdp = safe(d["average_value_GDP per capita (current US$)"]);
+      econ.forEach(d=>{
+        const n=normalize(d["Country Name"]); if(!n) return;
+        const key=`${n}-${d.Year}`;
+        if(!dataMap[key]) dataMap[key]={Country:n,Year:+d.Year};
+        dataMap[key].gdp=safe(d["average_value_GDP per capita (current US$)"]);
       });
 
-      edu.forEach(d => {
-        const norm = normalize(d["Country Name"]); if (!norm) return;
-        const key = `${norm}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
-        dataMap[key].education = safe(d["average_value_School enrollment, secondary (% gross)"]);
+      edu.forEach(d=>{
+        const n=normalize(d["Country Name"]); if(!n) return;
+        const key=`${n}-${d.Year}`;
+        if(!dataMap[key]) dataMap[key]={Country:n,Year:+d.Year};
+        dataMap[key].education=safe(d["average_value_School enrollment, secondary (% gross)"]);
       });
 
-      social.forEach(d => {
-        const norm = normalize(d["Country Name"]); if (!norm) return;
-        const key = `${norm}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
-        const male = safe(d["average_value_Life expectancy at birth, male (years)"]);
-        const female = safe(d["average_value_Life expectancy at birth, female (years)"]);
-        if (male && female) dataMap[key].life = (male + female) / 2;
+      social.forEach(d=>{
+        const n=normalize(d["Country Name"]); if(!n) return;
+        const key=`${n}-${d.Year}`;
+        if(!dataMap[key]) dataMap[key]={Country:n,Year:+d.Year};
+        const male=safe(d["average_value_Life expectancy at birth, male (years)"]);
+        const female=safe(d["average_value_Life expectancy at birth, female (years)"]);
+        if(male&&female) dataMap[key].life=(male+female)/2;
       });
 
-      const data = Object.values(dataMap);
+      const data=Object.values(dataMap);
 
-      function fillMissingData(data) {
-        const byCountry = d3.group(data, d => d.Country);
-        const filled = [];
-        byCountry.forEach((records, country) => {
+      function fillMissingData(data){
+        const byC=d3.group(data,d=>d.Country); const filled=[];
+        byC.forEach((records,country)=>{
           records.sort((a,b)=>a.Year-b.Year);
-          const allYears = d3.range(1960, 2021);
-          const keys = ["gdp","education","life"];
-          allYears.forEach(y => {
-            let entry = records.find(d => d.Year === y);
-            if (!entry) entry = { Country: country, Year: y };
-            keys.forEach(k => {
-              if (entry[k] == null) {
-                const before = records.filter(d => d.Year < y && d[k]!=null).slice(-1)[0];
-                const after = records.find(d => d.Year > y && d[k]!=null);
-                if (before && after) {
-                  const ratio = (y - before.Year)/(after.Year-before.Year);
-                  entry[k] = before[k] + ratio*(after[k]-before[k]);
-                } else if (before) entry[k] = before[k];
-                else if (after) entry[k] = after[k];
-                else entry[k] = null;
+          const allYears=d3.range(1960,2021);
+          const keys=["gdp","education","life"];
+          allYears.forEach(y=>{
+            let e=records.find(d=>d.Year===y); if(!e) e={Country:country,Year:y};
+            keys.forEach(k=>{
+              if(e[k]==null){
+                const before=records.filter(d=>d.Year<y&&d[k]!=null).slice(-1)[0];
+                const after=records.find(d=>d.Year>y&&d[k]!=null);
+                if(before&&after){
+                  const r=(y-before.Year)/(after.Year-before.Year);
+                  e[k]=before[k]+r*(after[k]-before[k]);
+                }else if(before) e[k]=before[k];
+                else if(after) e[k]=after[k];
+                else e[k]=null;
               }
             });
-            filled.push(entry);
+            filled.push(e);
           });
         });
         return filled;
       }
 
-      const filledData = fillMissingData(data);
+      const filledData=fillMissingData(data);
 
-      let color = getColorScale(metric);
-      const countries = svg.append("g")
-        .selectAll("path")
-        .data(world.features)
-        .join("path")
-        .attr("d", path)
-        .attr("fill", "#e0e0e0")
-        .attr("stroke", "#999");
 
-      const legendWidth = 250, legendHeight = 12;
-      const legendSvg = svg.append("g")
-        .attr("transform", `translate(${width - legendWidth - 80}, ${height - 100})`);
-      const defs = svg.append("defs");
-      const linearGradient = defs.append("linearGradient").attr("id", "legend-gradient");
-      legendSvg.append("rect")
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .style("fill", "url(#legend-gradient)")
-        .attr("stroke", "#999");
-      const legendScale = d3.scaleLinear().range([0, legendWidth]);
-      const legendAxis = legendSvg.append("g").attr("transform", `translate(0, ${legendHeight})`);
+      let color=getColorScale(metric);
+      const countries=svg.append("g").selectAll("path").data(world.features)
+        .join("path").attr("d",path).attr("fill","#e0e0e0").attr("stroke","#999");
+
+      const legendWidth=250,legendHeight=12;
+      const legendSvg=svg.append("g").attr("transform",`translate(${width-legendWidth-80},${height-100})`);
+      const defs=svg.append("defs");
+      const linearGradient=defs.append("linearGradient").attr("id","legend-gradient");
+      legendSvg.append("rect").attr("width",legendWidth).attr("height",legendHeight)
+        .style("fill","url(#legend-gradient)").attr("stroke","#999");
+      const legendScale=d3.scaleLinear().range([0,legendWidth]);
+      const legendAxis=legendSvg.append("g").attr("transform",`translate(0,${legendHeight})`);
 
       function updateLegend(min,max,label){
         legendScale.domain([min,max]);
-        const axis=d3.axisBottom(legendScale)
-          .tickValues([min,(min+max)/2,max]).tickFormat(d3.format(".2s"));
-        legendAxis.call(axis);
+        legendAxis.call(d3.axisBottom(legendScale).tickValues([min,(min+max)/2,max]).tickFormat(d3.format(".2s")));
         svg.selectAll(".legend-label").remove();
-        svg.append("text")
-          .attr("class","legend-label")
-          .attr("x",width-legendWidth-80)
-          .attr("y",height-110)
-          .text(label)
-          .style("font-size","13px")
-          .style("font-weight","600");
+        svg.append("text").attr("class","legend-label").attr("x",width-legendWidth-80)
+          .attr("y",height-110).text(label).style("font-size","13px").style("font-weight","600");
       }
 
       function update(){
         const yearData=filledData.filter(d=>d.Year===year);
-        const byCountry={};
-        yearData.forEach(d=>{byCountry[normalize(d.Country)]=d[metric];});
-        const values=Object.values(byCountry).filter(v=>v!=null);
+        const byC={}; yearData.forEach(d=>{byC[normalize(d.Country)]=d[metric];});
+        const values=Object.values(byC).filter(v=>v!=null);
         color=getColorScale(metric).domain([d3.min(values),d3.max(values)]);
         countries.transition().duration(400)
           .attr("fill",d=>{
             const name=normalize(d.properties.name);
-            const val=byCountry[name];
+            const val=byC[name];
             return val?color(val):"#ccc";
           });
         const stops=metric==="gdp"
@@ -259,21 +234,20 @@
           :metric==="education"
           ?[{offset:"0%",color:d3.interpolatePuBuGn(0)},{offset:"100%",color:d3.interpolatePuBuGn(1)}]
           :[{offset:"0%",color:d3.interpolateRdYlGn(0)},{offset:"100%",color:d3.interpolateRdYlGn(1)}];
-        linearGradient.selectAll("stop").data(stops)
-          .join("stop").attr("offset",d=>d.offset).attr("stop-color",d=>d.color);
+        linearGradient.selectAll("stop").data(stops).join("stop")
+          .attr("offset",d=>d.offset).attr("stop-color",d=>d.color);
         const label=metric==="gdp"?"GDP per Capita (US$)":metric==="education"?"Secondary Enrollment (%)":"Life Expectancy (Years)";
         updateLegend(d3.min(values),d3.max(values),label);
       }
 
       countries.on("mousemove",(event,d)=>{
-        const name=normalize(d.properties.name);
-        const val=filledData.find(x=>normalize(x.Country)===name&&x.Year===year);
-        tooltip.style("left",(event.pageX+12)+"px")
-          .style("top",(event.pageY-28)+"px")
+        const n=normalize(d.properties.name);
+        const v=filledData.find(x=>normalize(x.Country)===n&&x.Year===year);
+        tooltip.style("left",(event.pageX+12)+"px").style("top",(event.pageY-28)+"px")
           .style("opacity",1)
-          .html(`<strong>${name}</strong><br>
-            GDP: ${val?.gdp?"$"+Math.round(val.gdp).toLocaleString():"N/A"}<br>
-            Life Expectancy: ${val?.life?val.life.toFixed(1)+" years":"N/A"}`);
+          .html(`<strong>${n}</strong><br>
+            GDP: ${v?.gdp?"$"+Math.round(v.gdp).toLocaleString():"N/A"}<br>
+            Life Expectancy: ${v?.life?v.life.toFixed(1)+" years":"N/A"}`);
       }).on("mouseout",()=>tooltip.style("opacity",0));
 
       d3.select("#metric").on("change",e=>{metric=e.target.value;update();});
@@ -283,26 +257,25 @@
       d3.select("#close-btn").on("click",()=>popup.classed("hidden",true));
 
       countries.on("click",(event,d)=>{
-        const countryName=normalize(d.properties.name);
-        const countryData=filledData.filter(x=>normalize(x.Country)===countryName);
-        if(!countryData.length){alert(`No data for ${countryName}`);return;}
+        const cName=normalize(d.properties.name);
+        const cData=filledData.filter(x=>normalize(x.Country)===cName);
+        if(!cData.length){alert(`No data for ${cName}`);return;}
         popup.classed("hidden",false);
-        popupTitle.text(`${countryName} — GDP vs Life Expectancy`);
-        const years=[...new Set(countryData.map(d=>d.Year))].sort((a,b)=>a-b);
-        const gdp=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.gdp??null})).filter(d=>d.value!==null);
-        const life=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.life??null})).filter(d=>d.value!==null);
+        popupTitle.text(`${cName} — GDP vs Life Expectancy`);
+        const years=[...new Set(cData.map(d=>d.Year))].sort((a,b)=>a-b);
+        const gdp=years.map(y=>({year:y,value:cData.find(d=>d.Year===y)?.gdp??null})).filter(d=>d.value!==null);
+        const life=years.map(y=>({year:y,value:cData.find(d=>d.Year===y)?.life??null})).filter(d=>d.value!==null);
         popupChart.selectAll("*").remove();
-        const margin={top:40,right:60,bottom:40,left:70};
-        const w=600-margin.left-margin.right,h=350-margin.top-margin.bottom;
+        const margin={top:40,right:60,bottom:40,left:70},w=600-margin.left-margin.right,h=350-margin.top-margin.bottom;
         const svgLine=popupChart.append("g").attr("transform",`translate(${margin.left},${margin.top})`);
         const x=d3.scaleLinear().domain(d3.extent(years)).range([0,w]);
-        const yLeft=d3.scaleLinear().domain([0,d3.max(gdp,d=>d.value)*1.1]).range([h,0]);
-        const yRight=d3.scaleLinear().domain([d3.min(life,d=>d.value)-5,d3.max(life,d=>d.value)+5]).range([h,0]);
+        const yL=d3.scaleLinear().domain([0,d3.max(gdp,d=>d.value)*1.1]).range([h,0]);
+        const yR=d3.scaleLinear().domain([d3.min(life,d=>d.value)-5,d3.max(life,d=>d.value)+5]).range([h,0]);
         svgLine.append("g").attr("transform",`translate(0,${h})`).call(d3.axisBottom(x).tickFormat(d3.format("d")));
-        svgLine.append("g").call(d3.axisLeft(yLeft).ticks(6));
-        svgLine.append("g").attr("transform",`translate(${w},0)`).call(d3.axisRight(yRight).ticks(6));
-        const gdpLine=d3.line().x(d=>x(d.year)).y(d=>yLeft(d.value));
-        const lifeLine=d3.line().x(d=>x(d.year)).y(d=>yRight(d.value));
+        svgLine.append("g").call(d3.axisLeft(yL).ticks(6));
+        svgLine.append("g").attr("transform",`translate(${w},0)`).call(d3.axisRight(yR).ticks(6));
+        const gdpLine=d3.line().x(d=>x(d.year)).y(d=>yL(d.value));
+        const lifeLine=d3.line().x(d=>x(d.year)).y(d=>yR(d.value));
         svgLine.append("path").datum(gdp).attr("fill","none").attr("stroke","#2563eb").attr("stroke-width",2).attr("d",gdpLine);
         svgLine.append("path").datum(life).attr("fill","none").attr("stroke","#dc2626").attr("stroke-width",2).attr("d",lifeLine);
         const legend=svgLine.selectAll(".legend")
