@@ -91,64 +91,44 @@
     let year = 1960, metric = "gdp";
 
     const nameMap = {
-      "USA": "United States of America",
-      "United States": "United States of America",
-      "U.S.A.": "United States of America",
-      "Bahamas, The": "Bahamas",
-      "Brunei Darussalam": "Brunei",
-      "Cabo Verde": "Cape Verde",
+      "USA": "United States of America", "United States": "United States of America",
+      "U.S.A.": "United States of America", "Bahamas, The": "Bahamas",
+      "Brunei Darussalam": "Brunei", "Cabo Verde": "Cape Verde",
       "Congo, Dem. Rep.": "Democratic Republic of the Congo",
-      "Congo, Rep.": "Republic of the Congo",
-      "Cote d'Ivoire": "Ivory Coast",
-      "Egypt, Arab Rep.": "Egypt",
-      "Eswatini": "Swaziland",
-      "Gambia, The": "Gambia",
-      "Guinea-Bissau": "Guinea Bissau",
-      "Iran, Islamic Rep.": "Iran",
-      "Korea, Dem. People’s Rep.": "North Korea",
-      "Korea, Rep.": "South Korea",
-      "Lao PDR": "Laos",
-      "Macedonia": "North Macedonia",
-      "Russian Federation": "Russia",
-      "Syrian Arab Republic": "Syria",
-      "Venezuela, RB": "Venezuela",
-      "Viet Nam": "Vietnam",
-      "Yemen, Rep.": "Yemen",
+      "Congo, Rep.": "Republic of the Congo", "Cote d'Ivoire": "Ivory Coast",
+      "Egypt, Arab Rep.": "Egypt", "Eswatini": "Swaziland",
+      "Gambia, The": "Gambia", "Guinea-Bissau": "Guinea Bissau",
+      "Iran, Islamic Rep.": "Iran", "Korea, Dem. People’s Rep.": "North Korea",
+      "Korea, Rep.": "South Korea", "Lao PDR": "Laos",
+      "Macedonia": "North Macedonia", "Russian Federation": "Russia",
+      "Syrian Arab Republic": "Syria", "Venezuela, RB": "Venezuela",
+      "Viet Nam": "Vietnam", "Yemen, Rep.": "Yemen",
       "Bolivia (Plurinational State of)": "Bolivia",
-      "Iran (Islamic Republic of)": "Iran",
-      "Tanzania, United Republic of": "Tanzania",
-      "Micronesia, Fed. Sts.": "Micronesia",
-      "St. Kitts and Nevis": "Saint Kitts and Nevis",
-      "St. Lucia": "Saint Lucia",
-      "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-      "Antigua and Barbuda": "Antigua and Barbuda",
-      "Czech Republic": "Czechia",
-      "Timor-Leste": "East Timor",
-      "São Tomé and Príncipe": "Sao Tome and Principe",
-      "Slovak Republic": "Slovakia",
-      "Hong Kong SAR, China": "Hong Kong",
-      "Macao SAR, China": "Macao",
-      "Palestine, State of": "Palestine",
+      "Iran (Islamic Republic of)": "Iran", "Tanzania, United Republic of": "Tanzania",
+      "Micronesia, Fed. Sts.": "Micronesia", "St. Kitts and Nevis": "Saint Kitts and Nevis",
+      "St. Lucia": "Saint Lucia", "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
+      "Antigua and Barbuda": "Antigua and Barbuda", "Czech Republic": "Czechia",
+      "Timor-Leste": "East Timor", "São Tomé and Príncipe": "Sao Tome and Principe",
+      "Slovak Republic": "Slovakia", "Hong Kong SAR, China": "Hong Kong",
+      "Macao SAR, China": "Macao", "Palestine, State of": "Palestine",
       "Kyrgyz Republic": "Kyrgyzstan"
     };
 
     const regionNames = [
-      "Arab World", "Caribbean small states", "Euro area", "European Union",
-      "Heavily indebted poor countries (HIPC)", "Middle East & North Africa",
-      "Sub-Saharan Africa", "IDA total", "IBRD only", "IDA only",
-      "Latin America & Caribbean", "Middle income", "High income",
-      "Low income", "Upper middle income", "Lower middle income",
-      "World", "Small states", "East Asia & Pacific", "South Asia",
-      "OECD members", "Pre-demographic dividend", "Post-demographic dividend",
-      "IDA blend", "Late-demographic dividend", "Early-demographic dividend",
+      "Arab World","Caribbean small states","Euro area","European Union",
+      "Heavily indebted poor countries (HIPC)","Middle East & North Africa",
+      "Sub-Saharan Africa","IDA total","IBRD only","IDA only",
+      "Latin America & Caribbean","Middle income","High income",
+      "Low income","Upper middle income","Lower middle income",
+      "World","Small states","East Asia & Pacific","South Asia",
+      "OECD members","Pre-demographic dividend","Post-demographic dividend",
+      "IDA blend","Late-demographic dividend","Early-demographic dividend",
       "Fragile and conflict affected situations"
     ];
 
     const normalize = name => {
-      if (!name) return null;
-      if (regionNames.includes(name)) return null;
-      const mapped = nameMap[name];
-      return mapped || name;
+      if (!name || regionNames.includes(name)) return null;
+      return nameMap[name] || name;
     };
 
     function getColorScale(metric) {
@@ -171,24 +151,21 @@
       const safe = v => +v || null;
 
       econ.forEach(d => {
-        const norm = normalize(d["Country Name"]);
-        if (!norm) return;
+        const norm = normalize(d["Country Name"]); if (!norm) return;
         const key = `${norm}-${d.Year}`;
         if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         dataMap[key].gdp = safe(d["average_value_GDP per capita (current US$)"]);
       });
 
       edu.forEach(d => {
-        const norm = normalize(d["Country Name"]);
-        if (!norm) return;
+        const norm = normalize(d["Country Name"]); if (!norm) return;
         const key = `${norm}-${d.Year}`;
         if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         dataMap[key].education = safe(d["average_value_School enrollment, secondary (% gross)"]);
       });
 
       social.forEach(d => {
-        const norm = normalize(d["Country Name"]);
-        if (!norm) return;
+        const norm = normalize(d["Country Name"]); if (!norm) return;
         const key = `${norm}-${d.Year}`;
         if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         const male = safe(d["average_value_Life expectancy at birth, male (years)"]);
@@ -201,28 +178,27 @@
       function fillMissingData(data) {
         const byCountry = d3.group(data, d => d.Country);
         const filled = [];
-
         byCountry.forEach((records, country) => {
-          records.sort((a, b) => a.Year - b.Year);
-          const years = records.map(d => d.Year);
-          const startYear = d3.min(years), endYear = d3.max(years);
-
-          for (let y = startYear; y <= endYear; y++) {
+          records.sort((a,b)=>a.Year-b.Year);
+          const allYears = d3.range(1960, 2021);
+          const keys = ["gdp","education","life"];
+          allYears.forEach(y => {
             let entry = records.find(d => d.Year === y);
             if (!entry) entry = { Country: country, Year: y };
-            ["gdp", "education", "life"].forEach(key => {
-              if (!entry[key]) {
-                const before = records.filter(d => d.Year < y && d[key]).slice(-1)[0];
-                const after = records.find(d => d.Year > y && d[key]);
+            keys.forEach(k => {
+              if (entry[k] == null) {
+                const before = records.filter(d => d.Year < y && d[k]!=null).slice(-1)[0];
+                const after = records.find(d => d.Year > y && d[k]!=null);
                 if (before && after) {
-                  const ratio = (y - before.Year) / (after.Year - before.Year);
-                  entry[key] = before[key] + ratio * (after[key] - before[key]);
-                } else if (before) entry[key] = before[key];
-                else if (after) entry[key] = after[key];
+                  const ratio = (y - before.Year)/(after.Year-before.Year);
+                  entry[k] = before[k] + ratio*(after[k]-before[k]);
+                } else if (before) entry[k] = before[k];
+                else if (after) entry[k] = after[k];
+                else entry[k] = null;
               }
             });
             filled.push(entry);
-          }
+          });
         });
         return filled;
       }
@@ -240,14 +216,9 @@
 
       const legendWidth = 250, legendHeight = 12;
       const legendSvg = svg.append("g")
-        .attr("class", "legend")
         .attr("transform", `translate(${width - legendWidth - 80}, ${height - 100})`);
       const defs = svg.append("defs");
       const linearGradient = defs.append("linearGradient").attr("id", "legend-gradient");
-      linearGradient.selectAll("stop")
-        .data([{offset:"0%",color:d3.interpolateYlGnBu(0)},{offset:"100%",color:d3.interpolateYlGnBu(1)}])
-        .enter().append("stop")
-        .attr("offset", d=>d.offset).attr("stop-color", d=>d.color);
       legendSvg.append("rect")
         .attr("width", legendWidth)
         .attr("height", legendHeight)
@@ -256,47 +227,42 @@
       const legendScale = d3.scaleLinear().range([0, legendWidth]);
       const legendAxis = legendSvg.append("g").attr("transform", `translate(0, ${legendHeight})`);
 
-      function updateLegend(min, max, label) {
-        legendScale.domain([min, max]);
-        const axis = d3.axisBottom(legendScale)
-          .tickValues([min, (min + max) / 2, max])
-          .tickFormat(d3.format(".2s"));
+      function updateLegend(min,max,label){
+        legendScale.domain([min,max]);
+        const axis=d3.axisBottom(legendScale)
+          .tickValues([min,(min+max)/2,max]).tickFormat(d3.format(".2s"));
         legendAxis.call(axis);
         svg.selectAll(".legend-label").remove();
         svg.append("text")
-          .attr("class", "legend-label")
-          .attr("x", width - legendWidth - 80)
-          .attr("y", height - 110)
+          .attr("class","legend-label")
+          .attr("x",width-legendWidth-80)
+          .attr("y",height-110)
           .text(label)
-          .style("font-size", "13px")
-          .style("font-weight", "600");
+          .style("font-size","13px")
+          .style("font-weight","600");
       }
 
-      function update() {
-        const yearData = filledData.filter(d => d.Year === year);
-        const byCountry = {};
-        yearData.forEach(d => { byCountry[normalize(d.Country)] = d[metric]; });
-        const values = Object.values(byCountry).filter(v => v != null);
-
-        color = getColorScale(metric).domain([d3.min(values), d3.max(values)]);
+      function update(){
+        const yearData=filledData.filter(d=>d.Year===year);
+        const byCountry={};
+        yearData.forEach(d=>{byCountry[normalize(d.Country)]=d[metric];});
+        const values=Object.values(byCountry).filter(v=>v!=null);
+        color=getColorScale(metric).domain([d3.min(values),d3.max(values)]);
         countries.transition().duration(400)
-          .attr("fill", d => {
-            const name = normalize(d.properties.name);
-            const val = byCountry[name];
-            return val ? color(val) : "#ccc";
+          .attr("fill",d=>{
+            const name=normalize(d.properties.name);
+            const val=byCountry[name];
+            return val?color(val):"#ccc";
           });
-
-        const stops = metric === "gdp"
-          ? [{offset:"0%",color:d3.interpolateYlOrBr(0)},{offset:"100%",color:d3.interpolateYlOrBr(1)}]
-          : metric === "education"
-          ? [{offset:"0%",color:d3.interpolatePuBuGn(0)},{offset:"100%",color:d3.interpolatePuBuGn(1)}]
-          : [{offset:"0%",color:d3.interpolateRdYlGn(0)},{offset:"100%",color:d3.interpolateRdYlGn(1)}];
-
+        const stops=metric==="gdp"
+          ?[{offset:"0%",color:d3.interpolateYlOrBr(0)},{offset:"100%",color:d3.interpolateYlOrBr(1)}]
+          :metric==="education"
+          ?[{offset:"0%",color:d3.interpolatePuBuGn(0)},{offset:"100%",color:d3.interpolatePuBuGn(1)}]
+          :[{offset:"0%",color:d3.interpolateRdYlGn(0)},{offset:"100%",color:d3.interpolateRdYlGn(1)}];
         linearGradient.selectAll("stop").data(stops)
-          .join("stop").attr("offset", d => d.offset).attr("stop-color", d => d.color);
-
-        const label = metric==="gdp"?"GDP per Capita (US$)":metric==="education"?"Secondary Enrollment (%)":"Life Expectancy (Years)";
-        updateLegend(d3.min(values), d3.max(values), label);
+          .join("stop").attr("offset",d=>d.offset).attr("stop-color",d=>d.color);
+        const label=metric==="gdp"?"GDP per Capita (US$)":metric==="education"?"Secondary Enrollment (%)":"Life Expectancy (Years)";
+        updateLegend(d3.min(values),d3.max(values),label);
       }
 
       countries.on("mousemove",(event,d)=>{
@@ -322,11 +288,9 @@
         if(!countryData.length){alert(`No data for ${countryName}`);return;}
         popup.classed("hidden",false);
         popupTitle.text(`${countryName} — GDP vs Life Expectancy`);
-
         const years=[...new Set(countryData.map(d=>d.Year))].sort((a,b)=>a-b);
-        const gdp=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.gdp||null}));
-        const life=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.life||null}));
-
+        const gdp=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.gdp??null})).filter(d=>d.value!==null);
+        const life=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.life??null})).filter(d=>d.value!==null);
         popupChart.selectAll("*").remove();
         const margin={top:40,right:60,bottom:40,left:70};
         const w=600-margin.left-margin.right,h=350-margin.top-margin.bottom;
