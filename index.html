@@ -28,6 +28,51 @@
     .controls { margin: 15px 0; }
     .year-label { font-weight: bold; margin-left: 10px; font-size: 16px; }
     h2 { margin-bottom: 0; }
+
+    /* Diagnostics Panel */
+    #diagnostics {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 18px;
+      max-height: 250px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+    #diagnostics h3 {
+      margin-top: 0;
+      font-size: 14px;
+      color: #333;
+    }
+    .unmatched { color: #b91c1c; margin-bottom: 6px; }
+    .missing-data { color: #92400e; margin-top: 10px; }
+
+    /* Popup styles */
+    #popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+    #popup.hidden { display: none; }
+    #popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    #close-btn {
+      position: absolute;
+      top: 5px; right: 10px;
+      border: none;
+      background: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -49,6 +94,22 @@
   <svg width="960" height="550"></svg>
   <div class="tooltip"></div>
 
+  <!-- Diagnostics -->
+  <div id="diagnostics">
+    <h3>Data Diagnostics</h3>
+    <div id="unmatched-countries" class="unmatched"></div>
+    <div id="missing-countries" class="missing-data"></div>
+  </div>
+
+  <!-- Popup for Line Chart -->
+  <div id="popup" class="hidden">
+    <div id="popup-content">
+      <button id="close-btn">&times;</button>
+      <h3 id="popup-title"></h3>
+      <svg id="popup-chart" width="600" height="350"></svg>
+    </div>
+  </div>
+
   <script>
     const width = 960, height = 550;
     const svg = d3.select("svg");
@@ -59,7 +120,7 @@
     let year = 1960;
     let metric = "gdp";
 
-    // ✅ Country name normalization
+    // ✅ Country normalization mapping
     const nameMap = {
       "United States": "United States of America",
       "USA": "United States of America",
@@ -120,21 +181,23 @@
 
       const data = Object.values(dataMap);
 
-      // 🎯 Diagnostic Check — Print missing or unmatched countries
+      // 🧠 Diagnostic summary
       const csvCountries = new Set(data.map(d => d.Country));
       const geoCountries = new Set(world.features.map(f => f.properties.name));
-
       const unmatchedInGeo = [...csvCountries].filter(c => !geoCountries.has(c));
       const unmatchedInCSV = [...geoCountries].filter(c => !csvCountries.has(c));
-
+      d3.select("#unmatched-countries").html(`
+        <strong>🌐 CSV countries not found in GeoJSON:</strong><br>
+        ${unmatchedInGeo.length ? unmatchedInGeo.join(", ") : "✅ All matched!"}
+      `);
       console.group("🌍 Country Name Diagnostic");
-      console.log("✅ Total countries in GeoJSON:", geoCountries.size);
-      console.log("✅ Total countries in CSV data:", csvCountries.size);
+      console.log("✅ Total GeoJSON countries:", geoCountries.size);
+      console.log("✅ Total CSV countries:", csvCountries.size);
       console.log("❌ CSV countries not in GeoJSON:", unmatchedInGeo);
       console.log("❌ GeoJSON countries not in CSV data:", unmatchedInCSV);
       console.groupEnd();
 
-      // Map Drawing
+      // Draw map
       const countries = svg.append("g")
         .selectAll("path")
         .data(world.features)
@@ -149,17 +212,21 @@
         const yearData = data.filter(d => d.Year === year);
         const byCountry = {};
         yearData.forEach(d => { byCountry[d.Country] = d[metric]; });
-
         const values = Object.values(byCountry).filter(v => v != null);
         color.domain([d3.min(values), d3.max(values)]);
-
         countries.transition().duration(400)
           .attr("fill", d => {
-            const name = d.properties.name;
-            const val = byCountry[name];
+            const val = byCountry[d.properties.name];
             return val ? color(val) : "#ccc";
           });
 
+        const missing = world.features
+          .map(f => f.properties.name)
+          .filter(n => !byCountry[n]);
+        d3.select("#missing-countries").html(`
+          <strong>🚫 Countries with no data for ${year}:</strong><br>
+          ${missing.slice(0, 20).join(", ")}${missing.length > 20 ? ", ..." : ""}
+        `);
         d3.select("#year-label").text(year);
       }
 
@@ -178,9 +245,61 @@
           `);
       }).on("mouseout", () => tooltip.style("opacity", 0));
 
-      // Controls
       d3.select("#metric").on("change", e => { metric = e.target.value; update(); });
       d3.select("#year").on("input", e => { year = +e.target.value; update(); });
+
+      // 🎨 Popup line chart logic
+      const popup = d3.select("#popup");
+      const popupTitle = d3.select("#popup-title");
+      const popupChart = d3.select("#popup-chart");
+      d3.select("#close-btn").on("click", () => popup.classed("hidden", true));
+
+      countries.on("click", (event, d) => {
+        const countryName = d.properties.name;
+        const countryData = data.filter(x => x.Country === countryName);
+        if (!countryData.length) {
+          alert(`No data available for ${countryName}`);
+          return;
+        }
+        popup.classed("hidden", false);
+        popupTitle.text(countryName);
+
+        const years = [...new Set(countryData.map(d => d.Year))].sort((a,b)=>a-b);
+        const gdp = years.map(y => ({year: y, value: countryData.find(d=>d.Year===y)?.gdp || null}));
+        const edu = years.map(y => ({year: y, value: countryData.find(d=>d.Year===y)?.education || null}));
+        const life = years.map(y => ({year: y, value: countryData.find(d=>d.Year===y)?.life || null}));
+
+        const allValues = [...gdp, ...edu, ...life].map(d => d.value).filter(v => v != null);
+        const yMin = d3.min(allValues);
+        const yMax = d3.max(allValues);
+
+        popupChart.selectAll("*").remove();
+        const margin = {top: 40, right: 30, bottom: 40, left: 60};
+        const width = 600 - margin.left - margin.right;
+        const height = 350 - margin.top - margin.bottom;
+        const svgLine = popupChart.append("g")
+          .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleLinear().domain(d3.extent(years)).range([0, width]);
+        const y = d3.scaleLinear().domain([yMin, yMax]).nice().range([height, 0]);
+        svgLine.append("g").attr("transform", `translate(0,${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+        svgLine.append("g").call(d3.axisLeft(y));
+
+        const lineGen = d3.line().x(d => x(d.year)).y(d => y(d.value));
+        svgLine.append("path").datum(gdp).attr("fill","none").attr("stroke","#2563eb").attr("stroke-width",2).attr("d", lineGen);
+        svgLine.append("path").datum(edu).attr("fill","none").attr("stroke","#16a34a").attr("stroke-width",2).attr("d", lineGen);
+        svgLine.append("path").datum(life).attr("fill","none").attr("stroke","#dc2626").attr("stroke-width",2).attr("d", lineGen);
+
+        const legend = svgLine.selectAll(".legend")
+          .data(["GDP per Capita ($)", "Secondary Enrollment (%)", "Life Expectancy (yrs)"])
+          .enter().append("g")
+          .attr("transform", (d,i)=>`translate(0,${-25 - i*15})`);
+        const colors = ["#2563eb", "#16a34a", "#dc2626"];
+        legend.append("rect").attr("x", 0).attr("width", 12).attr("height", 12)
+          .attr("fill", (d,i)=>colors[i]);
+        legend.append("text").attr("x", 18).attr("y", 10).text(d=>d).style("font-size","12px");
+      });
 
       update();
     });
