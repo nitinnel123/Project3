@@ -91,28 +91,50 @@
     let year = 1960, metric = "gdp";
 
     const nameMap = {
-      "USA": "United States of America", "United States": "United States of America",
-      "U.S.A.": "United States of America", "Bahamas, The": "Bahamas",
-      "Brunei Darussalam": "Brunei", "Cabo Verde": "Cape Verde",
+      "USA": "United States of America",
+      "United States": "United States of America",
+      "U.S.A.": "United States of America",
+      "Bahamas, The": "Bahamas",
+      "Brunei Darussalam": "Brunei",
+      "Cabo Verde": "Cape Verde",
       "Congo, Dem. Rep.": "Democratic Republic of the Congo",
-      "Congo, Rep.": "Republic of the Congo", "Cote d'Ivoire": "Ivory Coast",
-      "Egypt, Arab Rep.": "Egypt", "Eswatini": "Swaziland",
-      "Gambia, The": "Gambia", "Guinea-Bissau": "Guinea Bissau",
-      "Iran, Islamic Rep.": "Iran", "Korea, Dem. People’s Rep.": "North Korea",
-      "Korea, Dem. People's Rep.": "North Korea", "Korea, Rep.": "South Korea",
-      "Lao PDR": "Laos", "Macedonia": "North Macedonia",
-      "Russian Federation": "Russia", "Syrian Arab Republic": "Syria",
-      "Venezuela, RB": "Venezuela", "Viet Nam": "Vietnam",
-      "Yemen, Rep.": "Yemen", "Bolivia (Plurinational State of)": "Bolivia",
-      "Iran (Islamic Republic of)": "Iran", "Tanzania, United Republic of": "Tanzania",
-      "Micronesia, Fed. Sts.": "Micronesia", "St. Kitts and Nevis": "Saint Kitts and Nevis",
-      "St. Lucia": "Saint Lucia", "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
-      "Antigua and Barbuda": "Antigua and Barbuda", "Czech Republic": "Czechia",
-      "Timor-Leste": "East Timor", "São Tomé and Príncipe": "Sao Tome and Principe",
-      "Slovak Republic": "Slovakia", "Hong Kong SAR, China": "Hong Kong",
-      "Macao SAR, China": "Macao", "Palestine, State of": "Palestine",
-      "Kyrgyz Republic": "Kyrgyzstan", "England": "United Kingdom",
-      "Somalia": "Somaliland", "Somaliland": "Somaliland"
+      "Congo, Rep.": "Republic of the Congo",
+      "Cote d'Ivoire": "Ivory Coast",
+      "Egypt, Arab Rep.": "Egypt",
+      "Eswatini": "Swaziland",
+      "Gambia, The": "Gambia",
+      "Guinea-Bissau": "Guinea Bissau",
+      "Iran, Islamic Rep.": "Iran",
+      "Korea, Dem. People’s Rep.": "North Korea",
+      "Korea, Dem. People's Rep.": "North Korea",
+      "Korea, Rep.": "South Korea",
+      "Lao PDR": "Laos",
+      "Macedonia": "North Macedonia",
+      "Russian Federation": "Russia",
+      "Syrian Arab Republic": "Syria",
+      "Venezuela, RB": "Venezuela",
+      "Viet Nam": "Vietnam",
+      "Yemen, Rep.": "Yemen",
+      "Bolivia (Plurinational State of)": "Bolivia",
+      "Iran (Islamic Republic of)": "Iran",
+      "Tanzania, United Republic of": "Tanzania",
+      "United Republic of Tanzania": "Tanzania",
+      "Micronesia, Fed. Sts.": "Micronesia",
+      "St. Kitts and Nevis": "Saint Kitts and Nevis",
+      "St. Lucia": "Saint Lucia",
+      "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
+      "Antigua and Barbuda": "Antigua and Barbuda",
+      "Czech Republic": "Czechia",
+      "Timor-Leste": "East Timor",
+      "São Tomé and Príncipe": "Sao Tome and Principe",
+      "Slovak Republic": "Slovakia",
+      "Hong Kong SAR, China": "Hong Kong",
+      "Macao SAR, China": "Macao",
+      "Palestine, State of": "Palestine",
+      "Kyrgyz Republic": "Kyrgyzstan",
+      "England": "United Kingdom",
+      "Somalia": "Somaliland",
+      "Somaliland": "Somaliland"
     };
 
     const regionNames = [
@@ -195,7 +217,6 @@
       }
 
       const filledData=fillMissingData(data);
-
 
       let color=getColorScale(metric);
       const countries=svg.append("g").selectAll("path").data(world.features)
