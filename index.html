@@ -29,7 +29,6 @@
     .year-label { font-weight: bold; margin-left: 10px; font-size: 16px; }
     h2 { margin-bottom: 0; }
 
-    /* Diagnostics Panel */
     #diagnostics {
       background: #fff;
       border: 1px solid #ccc;
@@ -40,15 +39,10 @@
       overflow-y: auto;
       font-size: 13px;
     }
-    #diagnostics h3 {
-      margin-top: 0;
-      font-size: 14px;
-      color: #333;
-    }
+    #diagnostics h3 { margin-top: 0; font-size: 14px; color: #333; }
     .unmatched { color: #b91c1c; margin-bottom: 6px; }
     .missing-data { color: #92400e; margin-top: 10px; }
 
-    /* Popup styles */
     #popup {
       position: fixed;
       top: 0; left: 0;
@@ -94,14 +88,12 @@
   <svg width="960" height="550"></svg>
   <div class="tooltip"></div>
 
-  <!-- Diagnostics -->
   <div id="diagnostics">
     <h3>Data Diagnostics</h3>
     <div id="unmatched-countries" class="unmatched"></div>
     <div id="missing-countries" class="missing-data"></div>
   </div>
 
-  <!-- Popup for Line Chart -->
   <div id="popup" class="hidden">
     <div id="popup-content">
       <button id="close-btn">&times;</button>
@@ -120,32 +112,71 @@
     let year = 1960;
     let metric = "gdp";
 
-    // ✅ Country normalization mapping
     const nameMap = {
-      "United States": "United States of America",
       "USA": "United States of America",
-      "United Kingdom": "United Kingdom of Great Britain and Northern Ireland",
+      "United States": "United States of America",
+      "England": "United Kingdom of Great Britain and Northern Ireland",
       "Russia": "Russian Federation",
       "Iran": "Iran (Islamic Republic of)",
-      "Syria": "Syrian Arab Republic",
-      "North Korea": "Democratic People's Republic of Korea",
-      "South Korea": "Republic of Korea",
-      "Czech Republic": "Czechia",
-      "Vietnam": "Viet Nam",
-      "Venezuela": "Venezuela (Bolivarian Republic of)",
-      "Laos": "Lao People's Democratic Republic",
-      "Egypt": "Egypt, Arab Republic of",
-      "Gambia": "Gambia, The",
-      "Congo, Dem. Rep.": "Democratic Republic of the Congo",
-      "Congo, Rep.": "Congo",
-      "Bolivia": "Bolivia (Plurinational State of)",
-      "Tanzania": "United Republic of Tanzania",
+      "Iran, Islamic Rep.": "Iran (Islamic Republic of)",
       "Yemen": "Yemen, Rep.",
-      "Kyrgyz Republic": "Kyrgyzstan",
-      "Slovak Republic": "Slovakia",
-      "Cape Verde": "Cabo Verde",
-      "Myanmar (Burma)": "Myanmar",
-      "Eswatini": "Swaziland"
+      "Yemen, Rep.": "Yemen, Rep.",
+      "Syria": "Syrian Arab Republic",
+      "South Korea": "Republic of Korea",
+      "Korea, Rep.": "Republic of Korea",
+      "North Korea": "Democratic People's Republic of Korea",
+      "Korea, Dem. People's Rep.": "Democratic People's Republic of Korea",
+      "Vietnam": "Viet Nam",
+      "Viet Nam": "Viet Nam",
+      "Laos": "Lao People's Democratic Republic",
+      "Lao PDR": "Lao People's Democratic Republic",
+      "Czech Republic": "Czechia",
+      "Ivory Coast": "Côte d'Ivoire",
+      "Cote d'Ivoire": "Côte d'Ivoire",
+      "Republic of Serbia": "Serbia",
+      "Macedonia": "North Macedonia",
+      "North Macedonia": "North Macedonia",
+      "Bolivia": "Bolivia (Plurinational State of)",
+      "Venezuela": "Venezuela (Bolivarian Republic of)",
+      "Venezuela, RB": "Venezuela (Bolivarian Republic of)",
+      "Brunei": "Brunei Darussalam",
+      "Gambia": "Gambia, The",
+      "Guinea Bissau": "Guinea-Bissau",
+      "Republic of the Congo": "Congo",
+      "Congo, Rep.": "Congo",
+      "Egypt": "Egypt, Arab Republic of",
+      "Egypt, Arab Rep.": "Egypt, Arab Republic of",
+      "Taiwan": "Taiwan, Province of China",
+      "East Timor": "Timor-Leste",
+      "Somaliland": "Somalia",
+      "West Bank": "Palestine, State of",
+      "Falkland Islands": "Falkland Islands (Malvinas)",
+      "Bahamas": "Bahamas, The",
+      "The Bahamas": "Bahamas, The",
+      "Western Sahara": "Western Sahara",
+      "Northern Cyprus": "Cyprus",
+      "Antarctica": null,
+      "French Southern and Antarctic Lands": null,
+      "Taiwan, Province of China": "Taiwan, Province of China"
+    };
+
+    const regionNames = [
+      "Arab World", "Caribbean small states", "Euro area", "European Union",
+      "Heavily indebted poor countries (HIPC)", "Middle East & North Africa",
+      "Sub-Saharan Africa", "IDA total", "IBRD only", "IDA only",
+      "Latin America & Caribbean", "Middle income", "High income",
+      "Low income", "Upper middle income", "Lower middle income",
+      "World", "Small states", "East Asia & Pacific", "South Asia",
+      "OECD members", "Pre-demographic dividend", "Post-demographic dividend",
+      "IDA blend", "Late-demographic dividend", "Early-demographic dividend",
+      "Fragile and conflict affected situations"
+    ];
+
+    const normalize = name => {
+      if (regionNames.includes(name)) return null;
+      const mapped = nameMap[name];
+      if (mapped === null) return null;
+      return mapped || name;
     };
 
     Promise.all([
@@ -157,23 +188,28 @@
 
       const dataMap = {};
       const safe = v => +v || null;
-      const normalize = name => nameMap[name] || name;
 
       econ.forEach(d => {
-        const key = `${normalize(d["Country Name"])}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
+        const norm = normalize(d["Country Name"]);
+        if (!norm) return;
+        const key = `${norm}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         dataMap[key].gdp = safe(d["average_value_GDP per capita (current US$)"]);
       });
 
       edu.forEach(d => {
-        const key = `${normalize(d["Country Name"])}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
+        const norm = normalize(d["Country Name"]);
+        if (!norm) return;
+        const key = `${norm}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         dataMap[key].education = safe(d["average_value_School enrollment, secondary (% gross)"]);
       });
 
       social.forEach(d => {
-        const key = `${normalize(d["Country Name"])}-${d.Year}`;
-        if (!dataMap[key]) dataMap[key] = { Country: normalize(d["Country Name"]), Year: +d.Year };
+        const norm = normalize(d["Country Name"]);
+        if (!norm) return;
+        const key = `${norm}-${d.Year}`;
+        if (!dataMap[key]) dataMap[key] = { Country: norm, Year: +d.Year };
         const male = safe(d["average_value_Life expectancy at birth, male (years)"]);
         const female = safe(d["average_value_Life expectancy at birth, female (years)"]);
         if (male && female) dataMap[key].life = (male + female) / 2;
@@ -181,7 +217,6 @@
 
       const data = Object.values(dataMap);
 
-      // 🧠 Diagnostic summary
       const csvCountries = new Set(data.map(d => d.Country));
       const geoCountries = new Set(world.features.map(f => f.properties.name));
       const unmatchedInGeo = [...csvCountries].filter(c => !geoCountries.has(c));
@@ -190,14 +225,8 @@
         <strong>🌐 CSV countries not found in GeoJSON:</strong><br>
         ${unmatchedInGeo.length ? unmatchedInGeo.join(", ") : "✅ All matched!"}
       `);
-      console.group("🌍 Country Name Diagnostic");
-      console.log("✅ Total GeoJSON countries:", geoCountries.size);
-      console.log("✅ Total CSV countries:", csvCountries.size);
-      console.log("❌ CSV countries not in GeoJSON:", unmatchedInGeo);
-      console.log("❌ GeoJSON countries not in CSV data:", unmatchedInCSV);
-      console.groupEnd();
+      console.log("Unmatched in GeoJSON:", unmatchedInGeo);
 
-      // Draw map
       const countries = svg.append("g")
         .selectAll("path")
         .data(world.features)
@@ -230,7 +259,6 @@
         d3.select("#year-label").text(year);
       }
 
-      // Tooltip
       countries.on("mousemove", (event, d) => {
         const name = d.properties.name;
         const val = data.find(x => x.Country === name && x.Year === year);
@@ -248,7 +276,7 @@
       d3.select("#metric").on("change", e => { metric = e.target.value; update(); });
       d3.select("#year").on("input", e => { year = +e.target.value; update(); });
 
-      // 🎨 Popup line chart logic
+
       const popup = d3.select("#popup");
       const popupTitle = d3.select("#popup-title");
       const popupChart = d3.select("#popup-chart");
