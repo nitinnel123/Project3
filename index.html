@@ -29,20 +29,6 @@
     .year-label { font-weight: bold; margin-left: 10px; font-size: 16px; }
     h2 { margin-bottom: 0; }
 
-    #diagnostics {
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 12px;
-      margin-top: 18px;
-      max-height: 250px;
-      overflow-y: auto;
-      font-size: 13px;
-    }
-    #diagnostics h3 { margin-top: 0; font-size: 14px; color: #333; }
-    .unmatched { color: #b91c1c; margin-bottom: 6px; }
-    .missing-data { color: #92400e; margin-top: 10px; }
-
     #popup {
       position: fixed;
       top: 0; left: 0;
@@ -88,12 +74,6 @@
   <svg width="960" height="550"></svg>
   <div class="tooltip"></div>
 
-  <div id="diagnostics">
-    <h3>Data Diagnostics</h3>
-    <div id="unmatched-countries" class="unmatched"></div>
-    <div id="missing-countries" class="missing-data"></div>
-  </div>
-
   <div id="popup" class="hidden">
     <div id="popup-content">
       <button id="close-btn">&times;</button>
@@ -108,75 +88,51 @@
     const tooltip = d3.select(".tooltip");
     const projection = d3.geoNaturalEarth1().scale(160).translate([width / 2, height / 2]);
     const path = d3.geoPath(projection);
+    let year = 1960, metric = "gdp";
 
-    let year = 1960;
-    let metric = "gdp";
-
-    const nameMap = {
+      const nameMap = {
       "USA": "United States of America",
       "United States": "United States of America",
       "U.S.A.": "United States of America",
-      "UK": "United Kingdom of Great Britain and Northern Ireland",
-      "England": "United Kingdom of Great Britain and Northern Ireland",
-      "Russia": "Russian Federation",
-      "Iran": "Iran (Islamic Republic of)",
-      "Iran, Islamic Rep.": "Iran (Islamic Republic of)",
-      "Yemen": "Yemen, Rep.",
-      "Yemen, Rep.": "Yemen, Rep.",
-      "Syria": "Syrian Arab Republic",
-      "South Korea": "Republic of Korea",
-      "Korea, Rep.": "Republic of Korea",
-      "North Korea": "Democratic People's Republic of Korea",
-      "Korea, Dem. People's Rep.": "Democratic People's Republic of Korea",
-      "Vietnam": "Viet Nam",
-      "Viet Nam": "Viet Nam",
-      "Laos": "Lao People's Democratic Republic",
-      "Lao PDR": "Lao People's Democratic Republic",
-      "Czech Republic": "Czechia",
-      "Ivory Coast": "Côte d'Ivoire",
-      "Cote d'Ivoire": "Côte d'Ivoire",
-      "Republic of Serbia": "Serbia",
+      "Bahamas, The": "Bahamas",
+      "Brunei Darussalam": "Brunei",
+      "Cabo Verde": "Cape Verde",
+      "Congo, Dem. Rep.": "Democratic Republic of the Congo",
+      "Congo, Rep.": "Republic of the Congo",
+      "Cote d'Ivoire": "Ivory Coast",
+      "Egypt, Arab Rep.": "Egypt",
+      "Eswatini": "Swaziland",
+      "Gambia, The": "Gambia",
+      "Guinea-Bissau": "Guinea Bissau",
+      "Iran, Islamic Rep.": "Iran",
+      "Korea, Dem. People’s Rep.": "North Korea",
+      "Korea, Rep.": "South Korea",
+      "Lao PDR": "Laos",
       "Macedonia": "North Macedonia",
       "North Macedonia": "North Macedonia",
-      "Bolivia": "Bolivia (Plurinational State of)",
-      "Venezuela": "Venezuela (Bolivarian Republic of)",
-      "Venezuela, RB": "Venezuela (Bolivarian Republic of)",
-      "Brunei": "Brunei Darussalam",
-      "Gambia": "Gambia, The",
-      "Guinea Bissau": "Guinea-Bissau",
-      "Republic of the Congo": "Congo",
-      "Congo, Rep.": "Congo",
-      "Congo, Dem. Rep.": "Democratic Republic of the Congo",
-      "Egypt": "Egypt, Arab Republic of",
-      "Egypt, Arab Rep.": "Egypt, Arab Republic of",
-      "Taiwan": "Taiwan, Province of China",
-      "East Timor": "Timor-Leste",
-      "Somaliland": "Somalia",
-      "West Bank": "Palestine, State of",
-      "Falkland Islands": "Falkland Islands (Malvinas)",
-      "Bahamas": "Bahamas, The",
-      "The Bahamas": "Bahamas, The",
-      "Western Sahara": "Western Sahara",
-      "Northern Cyprus": "Cyprus",
-      "Antarctica": null,
-      "French Southern and Antarctic Lands": null,
-      "China, P.R.": "China",
-      "Hong Kong SAR, China": "Hong Kong SAR, China",
-      "Macao SAR, China": "Macao SAR, China",
-      "India": "India",
-      "Brazil": "Brazil",
-      "Canada": "Canada",
-      "Australia": "Australia",
-      "New Zealand": "New Zealand",
-      "Japan": "Japan",
-      "Germany": "Germany",
-      "France": "France",
-      "Italy": "Italy",
-      "Spain": "Spain",
-      "Mexico": "Mexico",
-      "Argentina": "Argentina",
-      "South Africa": "South Africa"
+      "Russian Federation": "Russia",
+      "Syrian Arab Republic": "Syria",
+      "Venezuela, RB": "Venezuela",
+      "Viet Nam": "Vietnam",
+      "Yemen, Rep.": "Yemen",
+      "Bolivia (Plurinational State of)": "Bolivia",
+      "Iran (Islamic Republic of)": "Iran",
+      "Tanzania, United Republic of": "Tanzania",
+      "Micronesia, Fed. Sts.": "Micronesia",
+      "St. Kitts and Nevis": "Saint Kitts and Nevis",
+      "St. Lucia": "Saint Lucia",
+      "St. Vincent and the Grenadines": "Saint Vincent and the Grenadines",
+      "Antigua and Barbuda": "Antigua and Barbuda",
+      "Czech Republic": "Czechia",
+      "Timor-Leste": "East Timor",
+      "São Tomé and Príncipe": "Sao Tome and Principe",
+      "Slovak Republic": "Slovakia",
+      "Hong Kong SAR, China": "Hong Kong",
+      "Macao SAR, China": "Macao",
+      "Palestine, State of": "Palestine",
+      "Kyrgyz Republic": "Kyrgyzstan"
     };
+
 
     const regionNames = [
       "Arab World", "Caribbean small states", "Euro area", "European Union",
@@ -198,7 +154,7 @@
     };
 
     Promise.all([
-      d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+      d3.json("world.geojson"),
       d3.csv("economy-and-growth.csv"),
       d3.csv("education.csv"),
       d3.csv("social-development.csv")
@@ -233,15 +189,6 @@
       });
 
       const data = Object.values(dataMap);
-
-      const csvCountries = new Set(data.map(d => d.Country));
-      const geoCountries = new Set(world.features.map(f => f.properties.name));
-      const unmatchedInGeo = [...csvCountries].filter(c => !geoCountries.has(c));
-      d3.select("#unmatched-countries").html(`
-        <strong>🌐 CSV countries not found in GeoJSON:</strong><br>
-        ${unmatchedInGeo.length ? unmatchedInGeo.join(", ") : "✅ All matched!"}
-      `);
-
       const countries = svg.append("g")
         .selectAll("path")
         .data(world.features)
@@ -255,129 +202,96 @@
       const legendWidth = 250, legendHeight = 12;
       const legendSvg = svg.append("g")
         .attr("class", "legend")
-        .attr("transform", `translate(${width - legendWidth - 50}, ${height - 50})`);
+        .attr("transform", `translate(${width - legendWidth - 80}, ${height - 100})`);
       const defs = svg.append("defs");
       const linearGradient = defs.append("linearGradient").attr("id", "legend-gradient");
       linearGradient.selectAll("stop")
-        .data([
-          { offset: "0%", color: d3.interpolateYlGnBu(0) },
-          { offset: "100%", color: d3.interpolateYlGnBu(1) }
-        ])
+        .data([{offset:"0%",color:d3.interpolateYlGnBu(0)},{offset:"100%",color:d3.interpolateYlGnBu(1)}])
         .enter().append("stop")
-        .attr("offset", d => d.offset)
-        .attr("stop-color", d => d.color);
+        .attr("offset", d=>d.offset).attr("stop-color", d=>d.color);
       legendSvg.append("rect")
         .attr("width", legendWidth)
         .attr("height", legendHeight)
         .style("fill", "url(#legend-gradient)")
         .attr("stroke", "#999");
       const legendScale = d3.scaleLinear().range([0, legendWidth]);
-      const legendAxis = legendSvg.append("g")
-        .attr("transform", `translate(0, ${legendHeight})`);
-      function updateLegend(min, max, label) {
-        legendScale.domain([min, max]);
-        const axis = d3.axisBottom(legendScale)
-          .tickValues([min, (min + max) / 2, max])
-          .tickFormat(d3.format(".2s"));
+      const legendAxis = legendSvg.append("g").attr("transform", `translate(0, ${legendHeight})`);
+
+      function updateLegend(min,max,label){
+        legendScale.domain([min,max]);
+        const axis=d3.axisBottom(legendScale).tickValues([min,(min+max)/2,max]).tickFormat(d3.format(".2s"));
         legendAxis.call(axis);
         svg.selectAll(".legend-label").remove();
         svg.append("text")
-          .attr("class", "legend-label")
-          .attr("x", width - legendWidth - 50)
-          .attr("y", height - 60)
+          .attr("class","legend-label")
+          .attr("x",width - legendWidth - 80)
+          .attr("y",height - 110)
           .text(label)
-          .style("font-size", "13px")
-          .style("font-weight", "600");
+          .style("font-size","13px")
+          .style("font-weight","600");
       }
 
-      function update() {
-        const yearData = data.filter(d => d.Year === year);
-        const byCountry = {};
-        yearData.forEach(d => { byCountry[d.Country] = d[metric]; });
-        const values = Object.values(byCountry).filter(v => v != null);
-        color.domain([d3.min(values), d3.max(values)]);
+
+      function update(){
+        const yearData=data.filter(d=>d.Year===year);
+        const byCountry={};
+        yearData.forEach(d=>{byCountry[d.Country]=d[metric];});
+        const values=Object.values(byCountry).filter(v=>v!=null);
+        color.domain([d3.min(values),d3.max(values)]);
         countries.transition().duration(400)
-          .attr("fill", d => {
-            const val = byCountry[d.properties.name];
-            return val ? color(val) : "#ccc";
+          .attr("fill",d=>{
+            const val=byCountry[d.properties.name];
+            return val?color(val):"#ccc";
           });
-        const label = metric === "gdp"
-          ? "GDP per Capita (US$)"
-          : metric === "education"
-          ? "Secondary Enrollment (%)"
-          : "Life Expectancy (Years)";
-        updateLegend(d3.min(values), d3.max(values), label);
+        const label=metric==="gdp"?"GDP per Capita (US$)":metric==="education"?"Secondary Enrollment (%)":"Life Expectancy (Years)";
+        updateLegend(d3.min(values),d3.max(values),label);
       }
 
-      countries.on("mousemove", (event, d) => {
-        const name = d.properties.name;
-        const val = data.find(x => x.Country === name && x.Year === year);
-        tooltip.style("left", (event.pageX + 12) + "px")
-          .style("top", (event.pageY - 28) + "px")
-          .style("opacity", 1)
-          .html(`
-            <strong>${name}</strong><br>
-            GDP: ${val?.gdp ? "$" + Math.round(val.gdp).toLocaleString() : "N/A"}<br>
-            Life Expectancy: ${val?.life ? val.life.toFixed(1) + " years" : "N/A"}
-          `);
-      }).on("mouseout", () => tooltip.style("opacity", 0));
+      countries.on("mousemove",(event,d)=>{
+        const name=d.properties.name;
+        const val=data.find(x=>x.Country===name&&x.Year===year);
+        tooltip.style("left",(event.pageX+12)+"px")
+          .style("top",(event.pageY-28)+"px")
+          .style("opacity",1)
+          .html(`<strong>${name}</strong><br>
+                 GDP: ${val?.gdp?"$"+Math.round(val.gdp).toLocaleString():"N/A"}<br>
+                 Life Expectancy: ${val?.life?val.life.toFixed(1)+" years":"N/A"}`);
+      }).on("mouseout",()=>tooltip.style("opacity",0));
 
-      d3.select("#metric").on("change", e => { metric = e.target.value; update(); });
-      d3.select("#year").on("input", e => { year = +e.target.value; update(); });
+      d3.select("#metric").on("change",e=>{metric=e.target.value;update();});
+      d3.select("#year").on("input",e=>{year=+e.target.value;d3.select("#year-label").text(year);update();});
 
-      const popup = d3.select("#popup");
-      const popupTitle = d3.select("#popup-title");
-      const popupChart = d3.select("#popup-chart");
-      d3.select("#close-btn").on("click", () => popup.classed("hidden", true));
+      const popup=d3.select("#popup"),popupTitle=d3.select("#popup-title"),popupChart=d3.select("#popup-chart");
+      d3.select("#close-btn").on("click",()=>popup.classed("hidden",true));
 
-      countries.on("click", (event, d) => {
-        const countryName = d.properties.name;
-        const countryData = data.filter(x => x.Country === countryName);
-        if (!countryData.length) {
-          alert(`No data available for ${countryName}`);
-          return;
-        }
-        popup.classed("hidden", false);
+      countries.on("click",(event,d)=>{
+        const countryName=d.properties.name;
+        const countryData=data.filter(x=>x.Country===countryName);
+        if(!countryData.length){alert(`No data for ${countryName}`);return;}
+        popup.classed("hidden",false);
         popupTitle.text(`${countryName} — GDP vs Life Expectancy`);
-
-        const years = [...new Set(countryData.map(d => d.Year))].sort((a, b) => a - b);
-        const gdp = years.map(y => ({
-          year: y, value: countryData.find(d => d.Year === y)?.gdp || null
-        }));
-        const life = years.map(y => ({
-          year: y, value: countryData.find(d => d.Year === y)?.life || null
-        }));
-
+        const years=[...new Set(countryData.map(d=>d.Year))].sort((a,b)=>a-b);
+        const gdp=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.gdp||null}));
+        const life=years.map(y=>({year:y,value:countryData.find(d=>d.Year===y)?.life||null}));
         popupChart.selectAll("*").remove();
-        const margin = { top: 40, right: 60, bottom: 40, left: 70 };
-        const w = 600 - margin.left - margin.right;
-        const h = 350 - margin.top - margin.bottom;
-        const svgLine = popupChart.append("g")
-          .attr("transform", `translate(${margin.left},${margin.top})`);
-
-        const x = d3.scaleLinear().domain(d3.extent(years)).range([0, w]);
-        const yLeft = d3.scaleLinear().domain([0, d3.max(gdp, d => d.value) * 1.1]).range([h, 0]);
-        const yRight = d3.scaleLinear().domain([d3.min(life, d => d.value) - 5, d3.max(life, d => d.value) + 5]).range([h, 0]);
-
-        svgLine.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x).tickFormat(d3.format("d")));
+        const margin={top:40,right:60,bottom:40,left:70};
+        const w=600-margin.left-margin.right,h=350-margin.top-margin.bottom;
+        const svgLine=popupChart.append("g").attr("transform",`translate(${margin.left},${margin.top})`);
+        const x=d3.scaleLinear().domain(d3.extent(years)).range([0,w]);
+        const yLeft=d3.scaleLinear().domain([0,d3.max(gdp,d=>d.value)*1.1]).range([h,0]);
+        const yRight=d3.scaleLinear().domain([d3.min(life,d=>d.value)-5,d3.max(life,d=>d.value)+5]).range([h,0]);
+        svgLine.append("g").attr("transform",`translate(0,${h})`).call(d3.axisBottom(x).tickFormat(d3.format("d")));
         svgLine.append("g").call(d3.axisLeft(yLeft).ticks(6));
-        svgLine.append("g").attr("transform", `translate(${w},0)`).call(d3.axisRight(yRight).ticks(6));
-
-        const gdpLine = d3.line().x(d => x(d.year)).y(d => yLeft(d.value));
-        const lifeLine = d3.line().x(d => x(d.year)).y(d => yRight(d.value));
-
-        svgLine.append("path").datum(gdp).attr("fill","none").attr("stroke","#2563eb").attr("stroke-width",2).attr("d", gdpLine);
-        svgLine.append("path").datum(life).attr("fill","none").attr("stroke","#dc2626").attr("stroke-width",2).attr("d", lifeLine);
-
-        const legend = svgLine.selectAll(".legend")
-          .data([
-            { label: "GDP per Capita ($)", color: "#2563eb" },
-            { label: "Life Expectancy (years)", color: "#dc2626" }
-          ])
-          .enter().append("g")
-          .attr("transform", (d,i)=>`translate(0,${-25 - i*15})`);
-        legend.append("rect").attr("x", 0).attr("width", 12).attr("height", 12).attr("fill", d => d.color);
-        legend.append("text").attr("x", 18).attr("y", 10).text(d=>d.label).style("font-size","12px");
+        svgLine.append("g").attr("transform",`translate(${w},0)`).call(d3.axisRight(yRight).ticks(6));
+        const gdpLine=d3.line().x(d=>x(d.year)).y(d=>yLeft(d.value));
+        const lifeLine=d3.line().x(d=>x(d.year)).y(d=>yRight(d.value));
+        svgLine.append("path").datum(gdp).attr("fill","none").attr("stroke","#2563eb").attr("stroke-width",2).attr("d",gdpLine);
+        svgLine.append("path").datum(life).attr("fill","none").attr("stroke","#dc2626").attr("stroke-width",2).attr("d",lifeLine);
+        const legend=svgLine.selectAll(".legend")
+          .data([{label:"GDP per Capita ($)",color:"#2563eb"},{label:"Life Expectancy (years)",color:"#dc2626"}])
+          .enter().append("g").attr("transform",(d,i)=>`translate(0,${-25-i*15})`);
+        legend.append("rect").attr("x",0).attr("width",12).attr("height",12).attr("fill",d=>d.color);
+        legend.append("text").attr("x",18).attr("y",10).text(d=>d.label).style("font-size","12px");
       });
 
       update();
