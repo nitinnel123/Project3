@@ -100,7 +100,7 @@ h2 {
 
 .writeup-link {
   margin-top: 20px;
-  text-align: center;
+  text-align: left;
 }
 
 .writeup-link a {
@@ -110,7 +110,6 @@ h2 {
   padding: 8px 16px;
   border-radius: 6px;
   font-weight: 500;
-  transition: background 0.2s ease;
 }
 
 .writeup-link a:hover {
